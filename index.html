@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Web Analytics Demo</title>
+</head>
+<body>
+  <h1>Web Analytics Demo</h1>
+  <p>Click anywhere on the page to send a clickstream event to Kinesis.</p>
+  <button id="btn1">Button 1</button>
+  <button id="btn2">Button 2</button>
+
+  <script>
+    const SESSION_ID = crypto.randomUUID();
+
+    function track(event) {
+      fetch("/track", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          session_id: SESSION_ID,
+          event_type: "click",
+          element: event.target.tagName,
+          element_id: event.target.id || null,
+          x: event.clientX,
+          y: event.clientY,
+          path: window.location.pathname,
+          timestamp: new Date().toISOString(),
+        }),
+      });
+    }
+
+    document.addEventListener("click", track);
+  </script>
+</body>
+</html>
