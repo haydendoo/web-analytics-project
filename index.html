@@ -9,9 +9,10 @@
   <p>Click anywhere on the page to send a clickstream event to Kinesis.</p>
   <button id="btn1">Button 1</button>
   <button id="btn2">Button 2</button>
+  <button id="btn3">Checkout (Conversion event)</button>
 
   <script>
-    const SESSION_ID = crypto.randomUUID();
+    const SESSION_ID = Math.random().toString(36).slice(2);
 
     function track(event) {
       fetch("/track", {
@@ -30,7 +31,25 @@
       });
     }
 
+    function checkout(event) {
+      fetch("/track", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          session_id: SESSION_ID,
+          event_type: "conversion",
+          element: event.target.tagName,
+          element_id: event.target.id || null,
+          x: event.clientX,
+          y: event.clientY,
+          path: window.location.pathname,
+          timestamp: new Date().toISOString(),
+        }),
+      });
+    }
+
     document.addEventListener("click", track);
+    document.getElementById("btn3").addEventListener("click", checkout);
   </script>
 </body>
 </html>

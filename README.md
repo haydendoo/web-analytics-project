@@ -43,3 +43,16 @@ Website that sends clickstream data to Kinesis Data Stream (Go).
   "Resource": "arn:aws:kinesis:<region>:<account-id>:stream/<stream-name>"
 }
 ```
+
+# Data Transformation
+1. Group data by session id first
+2. Total events
+3. Total clicks on buttons
+4. If checkout clicked (converted, 0 or 1)
+5. Session duration
+6. Average time between clicks
+
+Essentially longer sessions, more clicks, faster clicks mean more likely to convert.
+
+# AI Model
+Predicts from 0 to 1, probability that a user will convert based on all the other data (Predicts no. 4)

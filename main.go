@@ -35,8 +35,8 @@ func main() {
 	})
 	http.HandleFunc("/track", track)
 
-	log.Println("Listening on :3000")
-	log.Fatal(http.ListenAndServe(":3000", nil))
+	log.Println("Listening on :80")
+	log.Fatal(http.ListenAndServe("0.0.0.0:80", nil))
 }
 
 func track(w http.ResponseWriter, r *http.Request) {
