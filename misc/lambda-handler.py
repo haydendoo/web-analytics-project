@@ -1,3 +1,5 @@
+# Simple lambda function to process clickstream data from kinesis data stream sent to lambda
+
 import base64
 import json
 import logging

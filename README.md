@@ -50,7 +50,7 @@ Website that sends clickstream data to Kinesis Data Stream (Go).
 3. Total clicks on buttons
 4. If checkout clicked (converted, 0 or 1)
 5. Session duration
-6. Average time between clicks
+6. Average distance of click from convert button
 
 Essentially longer sessions, more clicks, faster clicks mean more likely to convert.
 

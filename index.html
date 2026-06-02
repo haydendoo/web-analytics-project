@@ -6,51 +6,131 @@
 </head>
 <body>
   <h1>Web Analytics Demo</h1>
-  <p>Click anywhere on the page to send a clickstream event to Kinesis.</p>
+  <p>Click anywhere on the page to send clickstream events to Kinesis.</p>
+
   <button id="btn1">Button 1</button>
   <button id="btn2">Button 2</button>
   <button id="btn3">Checkout (Conversion event)</button>
 
+  <hr />
+
+  <button id="inferBtn">Check Conversion Prediction</button>
+  <pre id="output"></pre>
+
   <script>
     const SESSION_ID = Math.random().toString(36).slice(2);
 
+    const CHECKOUT_X = 237;
+    const CHECKOUT_Y = 127;
+
+    // Store ALL events locally
+    const events = [];
+
     function track(event) {
-      if (event.target.id === "btn3") return
+      if (!event.target || event.target.id === "btn3" || event.target.id === "inferBtn") return;
+
+      const payload = {
+        session_id: SESSION_ID,
+        event_type: "click",
+        element: event.target.tagName,
+        element_id: event.target.id || null,
+        x: event.clientX,
+        y: event.clientY,
+        path: window.location.pathname,
+        timestamp: new Date().toISOString(),
+      };
+
+      events.push(payload);
+
       fetch("/track", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          session_id: SESSION_ID,
-          event_type: "click",
-          element: event.target.tagName,
-          element_id: event.target.id || null,
-          x: event.clientX,
-          y: event.clientY,
-          path: window.location.pathname,
-          timestamp: new Date().toISOString(),
-        }),
+        body: JSON.stringify(payload),
       });
     }
 
     function checkout(event) {
+      const payload = {
+        session_id: SESSION_ID,
+        event_type: "conversion",
+        element: event.target.tagName,
+        element_id: event.target.id || null,
+        x: event.clientX,
+        y: event.clientY,
+        path: window.location.pathname,
+        timestamp: new Date().toISOString(),
+      };
+
+      events.push(payload);
+
       fetch("/track", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          session_id: SESSION_ID,
-          event_type: "conversion",
-          element: event.target.tagName,
-          element_id: event.target.id || null,
-          x: event.clientX,
-          y: event.clientY,
-          path: window.location.pathname,
-          timestamp: new Date().toISOString(),
-        }),
+        body: JSON.stringify(payload),
       });
     }
 
+    // -----------------------------
+    // Feature engineering (FRONTEND version of Glue logic)
+    // -----------------------------
+    function buildFeatures() {
+      const total_events = events.length;
+
+      const button_clicks = events.filter(e => e.element === "BUTTON").length;
+
+      const unique_elements_clicked = new Set(
+        events.map(e => e.element_id).filter(Boolean)
+      ).size;
+
+      const session_start = new Date(events[0]?.timestamp || Date.now());
+      const session_end = new Date(events[events.length - 1]?.timestamp || Date.now());
+
+      const session_duration_sec =
+        (session_end - session_start) / 1000;
+
+      const distances = events.map(e => {
+        const dx = (e.x || 0) - CHECKOUT_X;
+        const dy = (e.y || 0) - CHECKOUT_Y;
+        return Math.sqrt(dx * dx + dy * dy);
+      });
+
+      const avg_distance_to_checkout =
+        distances.reduce((a, b) => a + b, 0) / (distances.length || 1);
+
+      return {
+        total_events,
+        total_button_clicks: button_clicks,
+        session_duration_sec,
+        avg_distance_to_checkout,
+        unique_elements_clicked,
+        button_click_ratio: button_clicks / (total_events || 1),
+      };
+    }
+
+    // -----------------------------
+    // Call SageMaker inference
+    // -----------------------------
+    async function checkInference() {
+      const features = buildFeatures();
+
+      const res = await fetch("/check-conversion", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(features),
+      });
+
+      const data = await res.json();
+
+      document.getElementById("output").textContent =
+        JSON.stringify({ features, prediction: data }, null, 2);
+    }
+
+    // -----------------------------
+    // Event bindings
+    // -----------------------------
     document.addEventListener("click", track);
     document.getElementById("btn3").addEventListener("click", checkout);
+    document.getElementById("inferBtn").addEventListener("click", checkInference);
   </script>
 </body>
 </html>
